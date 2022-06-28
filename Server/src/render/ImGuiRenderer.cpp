@@ -82,7 +82,7 @@ ImFont *ImGuiRenderer::getFont(float dpiScale) {
     auto it = this->fonts.find(dpiScale);
 
     if (it == this->fonts.end()) {
-        ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF(R"(C:\Users\Anatol\CLionProjects\Snake\courbd.ttf)", dpiScale * 24.f);
+        ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("./res/fonts/courbd.ttf", dpiScale * 24.f);
         this->fonts[dpiScale] = font;
         return font;
     }
