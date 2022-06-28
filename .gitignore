@@ -1,0 +1,6 @@
+Server/imgui.ini
+**/cmake-build*/
+**/.**
+!.git*
+*.exe
+*.lib
