@@ -1,0 +1,16 @@
+{
+  "num_rows": 10,
+  "num_cols": 10,
+  "num_food": 3,
+
+  "snakes": [
+    {
+      "back": [4, 1],
+      "body": ["RIGHT"]
+    },
+    {
+      "back": [4, 8],
+      "body": ["LEFT"]
+    }
+  ]
+}

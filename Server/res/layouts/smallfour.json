@@ -1,0 +1,23 @@
+{
+  "num_rows": 10,
+  "num_cols": 10,
+  "num_food": 3,
+  "snakes": [
+    {
+      "back": [1, 1],
+      "body": ["DOWN", "DOWN"]
+    },
+    {
+      "back": [1, 8],
+      "body": ["LEFT", "LEFT"]
+    },
+    {
+      "back": [8, 1],
+      "body": ["RIGHT", "RIGHT"]
+    },
+    {
+      "back": [8, 8],
+      "body": ["UP", "UP"]
+    }
+  ]
+}
