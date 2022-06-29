@@ -67,7 +67,7 @@ bool ImGuiRenderer::init() {
         ImGuiRenderer* renderer = s_contextToRenderer[ImGui::GetCurrentContext()];
 
         //ImGui::GetStyle().ScaleAllSizes(viewport->DpiScale * renderer->ref / ImGui::GetStyle().IndentSpacing);
-        ImGui::GetIO().FontDefault = renderer->getFont(viewport->DpiScale);
+        ImGui::GetIO().FontDefault = renderer->getFont(viewport->DpiScale, false);
     };
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -78,13 +78,26 @@ bool ImGuiRenderer::init() {
     return true;
 }
 
-ImFont *ImGuiRenderer::getFont(float dpiScale) {
+ImFont *ImGuiRenderer::getFont(float dpiScale, bool load) {
     auto it = this->fonts.find(dpiScale);
 
-    if (it == this->fonts.end()) {
+    if (it == this->fonts.end() && load) {
         ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("./res/fonts/courbd.ttf", dpiScale * 24.f);
         this->fonts[dpiScale] = font;
         return font;
+    } else if (!load) {
+        //Find closest for now
+        float closestDist = std::numeric_limits<float>::max();
+        ImFont* closestFont = nullptr;
+        for (auto& pair : this->fonts) {
+            float dist = std::abs(pair.first - dpiScale);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestFont = pair.second;
+            }
+        }
+
+        return closestFont;
     }
 
     return it->second;

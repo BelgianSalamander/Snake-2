@@ -109,7 +109,15 @@ ConnectionManager::~ConnectionManager() {
 
 
 void Connection::sendData(const char* data, int len) {
-    send(socket, data, len, 0);
+    int sent = 0;
+    while (sent < len) {
+        int res = send(socket, data + sent, len - sent, 0);
+        if (res == SOCKET_ERROR || res == 0) {
+            std::cerr << "Failed to send data" << std::endl;
+            return;
+        }
+        sent += res;
+    }
 }
 
 Connection::Connection(SOCKET i, time_t i1, ConnectionManager* manager) {
@@ -260,9 +268,11 @@ void NetworkPlayer::receiveChanges(Game &game, Snake &snake, Changes &changes) {
 
     delete[] data;
 
+#ifdef _DEBUG
     data = makeWholeGridPacket(length, game);
     connection->sendData(data, length);
     delete[] data;
+#endif
 }
 
 void NetworkPlayer::onRemoved() {
@@ -317,6 +327,25 @@ void NetworkPlayer::prepareNextMove(Game &game, Snake &snake) {
 
 std::optional<Move> NetworkPlayer::queryNextMove() {
     return this->receivedMove;
+}
+
+void NetworkPlayer::onDeath(Game &game, Snake &snake, std::string reason, bool timeout) {
+    int length;
+    char* packet = makeSnakeDeadPacket(length, reason);
+
+    this->connection->sendData(packet, length);
+
+    delete[] packet;
+}
+
+void NetworkPlayer::endGame(Game &game, Snake &snake, bool died, unsigned int length, int score, unsigned int diedOn,
+                            unsigned int rank, unsigned int numTies, int newElo) {
+    int packetLength;
+    char* packet = makeGameResultsPacket(packetLength, died, length, score, diedOn, rank, numTies, newElo);
+
+    this->connection->sendData(packet, packetLength);
+
+    delete[] packet;
 }
 
 template<typename T>
@@ -435,6 +464,52 @@ char* makeWholeGridPacket(int& len, Game& game) {
             buf += write(buf, game.getSquare({i, j}).snakeID);
         }
     }
+
+    len = 4 + bodyLength;
+
+    return packet;
+}
+
+char* makeSnakeDeadPacket(int& len, std::string& reason) {
+    short bodyLength = reason.length();
+
+    char* packet = new char[4 + bodyLength];
+
+    packet[0] = bodyLength & 0xFF; //Length
+    packet[1] = bodyLength >> 8; //Length
+
+    packet[2] = SNAKE_DEAD; //Type
+    packet[3] = 0; //Padding
+
+    char* buf = packet + 4;
+
+    memcpy(buf, reason.c_str(), reason.length());
+
+    len = 4 + bodyLength;
+
+    return packet;
+}
+
+char* makeGameResultsPacket(int& len, bool died, unsigned int length, int score, unsigned int diedOn, unsigned int rank, unsigned int numTies, int newElo) {
+    short bodyLength = 1 + 4 + 4 + 4 + 4 + 4 + 4;
+
+    char* packet = new char[4 + bodyLength];
+
+    packet[0] = bodyLength & 0xFF; //Length
+    packet[1] = bodyLength >> 8; //Length
+
+    packet[2] = GAME_RESULTS; //Type
+    packet[3] = 0; //Padding
+
+    char* buf = packet + 4;
+
+    buf += write(buf, died);
+    buf += write(buf, length);
+    buf += write(buf, score);
+    buf += write(buf, diedOn);
+    buf += write(buf, rank);
+    buf += write(buf, numTies);
+    buf += write(buf, newElo);
 
     len = 4 + bodyLength;
 

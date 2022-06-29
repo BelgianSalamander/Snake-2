@@ -27,7 +27,11 @@ enum OutwardBoundPacketType: uint8_t {
     MOVE_REQUEST = 1,
     GAME_CHANGES = 2,
     GAME_START = 3,
-    WHOLE_GRID = 4
+#ifdef _DEBUG
+    WHOLE_GRID = 4,
+#endif
+    SNAKE_DEAD = 5,
+    GAME_RESULTS = 6,
 };
 
 enum InwardBoundPacketType: uint8_t {
@@ -80,6 +84,15 @@ public:
 private:
     std::optional<Move> receivedMove;
 public:
+protected:
+    void onDeath(Game &game, Snake &snake, std::string reason, bool timeout) override;
+
+public:
+    void
+    endGame(Game &game, Snake &snake, bool died, unsigned int length, int score, unsigned int diedOn, unsigned int rank,
+            unsigned int numTies, int newElo) override;
+
+public:
     void beginGame(Game &game, Snake &snake) override;
 
     void receiveChanges(Game &game, Snake &snake, Changes &changes) override;
@@ -115,5 +128,7 @@ char* makeMoveRequestPacket(int& len);
 char* makeGameChangesPacket(int& len, Game& game, Snake& snake, Changes& changes);
 char* makeGameStartPacket(int& len, Game& game, Snake& snake);
 char* makeWholeGridPacket(int& len, Game& game);
+char* makeSnakeDeadPacket(int& len, std::string& reason);
+char* makeGameResultsPacket(int& len, bool died, unsigned int length, int score, unsigned int diedOn, unsigned int rank, unsigned int numTies, int newElo);
 
 #endif //SNAKE_SNAKE_NETWORK_H

@@ -53,7 +53,7 @@ public:
         prepareNextMove(game, snake);
     }
 
-    virtual void endGame(Game& game, Snake &snake){}
+    virtual void endGame(Game& game, Snake &snake, bool died, unsigned int length, int score, unsigned int diedOn, unsigned int rank, unsigned int numTies, int newElo){}
     virtual void onRemoved() {}
 
     inline Color getColor() {

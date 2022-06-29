@@ -125,6 +125,22 @@ pub trait SnakeBrain {
     fn on_square_change(&mut self, state: &GameState, pos: Pos, old_square: Square, new_square: Square) {
         
     }
+
+    fn on_death(&mut self, reason: String) {
+        println!("You died: {}", reason);
+    }
+
+    fn process_game_results(&mut self, died: bool, length: u32, score: i32, died_on: u32, rank: u32, num_ties: u32, new_elo: i32) {
+        if died {
+            println!("You died on turn {}", died_on);
+        }
+        println!("Your length was {}", length);
+        println!("Your score was {}", score);
+        println!("Your rank was {}", rank);
+        println!("You tied with {} other snakes", num_ties);
+        println!("Your new ELO rating is {}", new_elo);
+    
+    }
 }
 
 enum ClientBoundPacketType {
@@ -132,7 +148,9 @@ enum ClientBoundPacketType {
     MoveRequest = 1,
     GameChanges = 2,
     GameStart = 3,
-    WholeGrid = 4
+    WholeGrid = 4,
+    SnakeDeath = 5,
+    GameResults = 6
 }
 
 enum ServerBoundPacketType {
@@ -178,6 +196,26 @@ impl TcpHelper {
 
     fn read_u32(&mut self) -> u32 {
         let ret = (self.read_u16() as u32) | ((self.read_u16() as u32) << 16);
+        ret
+    }
+
+    fn read_i8(&mut self) -> i8 {
+        let ret = self.read_u8() as i8;
+        ret
+    }
+
+    fn read_i16(&mut self) -> i16 {
+        let ret = self.read_u16() as i16;
+        ret
+    }
+
+    fn read_i32(&mut self) -> i32 {
+        let ret = self.read_u32() as i32;
+        ret
+    }
+
+    fn read_bool(&mut self) -> bool {
+        let ret = self.read_u8() != 0;
         ret
     }
 
@@ -251,6 +289,8 @@ impl SnakeClient {
                 2 => ClientBoundPacketType::GameChanges,
                 3 => ClientBoundPacketType::GameStart,
                 4 => ClientBoundPacketType::WholeGrid,
+                5 => ClientBoundPacketType::SnakeDeath,
+                6 => ClientBoundPacketType::GameResults,
                 _ => {
                     println!("Unknown packet type: {}", packet_type);
                     break;
@@ -347,6 +387,33 @@ impl SnakeClient {
                             }
                         }
                     }
+                }
+
+                ClientBoundPacketType::SnakeDeath => {
+                    if !self.connected {
+                        panic!("Not connected!");
+                    }
+
+                    //Body is a string with a reason for death
+                    self.brain.on_death(String::from_utf8(packet_buffer).unwrap());
+                }
+
+                ClientBoundPacketType::GameResults => {
+                    if !self.connected {
+                        panic!("Not connected!");
+                    }
+
+                    let mut helper = TcpHelper::new(packet_buffer);
+
+                    let died = helper.read_bool();
+                    let length = helper.read_u32();
+                    let score = helper.read_i32();
+                    let died_on = helper.read_u32();
+                    let rank = helper.read_u32();
+                    let num_ties = helper.read_u32();
+                    let new_elo = helper.read_i32();
+
+                    self.brain.process_game_results(died, length, score, died_on, rank, num_ties, new_elo)
                 }
             }
         }

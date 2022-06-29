@@ -175,6 +175,7 @@ void Game::tryTick() {
         this->snakesDeadThisTurn.clear();
 
         for (Snake* snake: deadSnakes) {
+            snake->sizeOnDeath = snake->getSize();
             killSnake(snake, std::string("Didn't receive move after ") + std::to_string(TIMEOUT_MS) + "ms", true);
         }
 
@@ -197,6 +198,7 @@ void Game::tick() {
     for (auto entry: targets) {
         if (entry.second.size() > 1) {
             for (Snake* snake : entry.second) {
+                snake->sizeOnDeath = snake->getSize();
                 killSnake(snake, "Collision with other snake's head", false);
             }
         } else {
@@ -215,6 +217,7 @@ void Game::tick() {
             Pos target = entry.first;
 
             if (!isWithinBounds(target)) {
+                snake->sizeOnDeath = snake->getSize() + 1; //We retracted the tail but it's length is still one more
                 killSnake(snake, "Out of bounds", false);
                 continue;
             }
@@ -223,8 +226,10 @@ void Game::tick() {
 
             if (!square.canMoveTo()) {
                 if (square.snakeID == snake->getID()) {
+                    snake->sizeOnDeath = snake->getSize() + 1; //We retracted the tail but it's length is still one more
                     killSnake(snake, "Tried to move to own body", false);
                 } else {
+                    snake->sizeOnDeath = snake->getSize() + 1;
                     killSnake(snake, "Tried to move to other snake's body", false);
                 }
                 continue;
@@ -303,7 +308,7 @@ bool Game::hasGameEnded() const {
 }
 
 int snakeSizeScore(const Snake& snake) {
-    return snake.getBody().size() - snake.startSize + (snake.isAlive() ? 10 : 0);
+    return snake.getSize() - snake.startSize + (snake.isAlive() ? 10 : 0);
 }
 
 void Game::finish() {
@@ -328,6 +333,8 @@ void Game::finish() {
     });
 
     std::vector<float> scores;
+    std::vector<unsigned int> ranks;
+    std::vector<unsigned int> numTies;
 
     for (int i = 0; i < snakePtrs.size(); i++) {
         scores.push_back(getScore(i + 1, snakePtrs.size()));
@@ -349,6 +356,8 @@ void Game::finish() {
 
             for (int i = backPtr; i < frontPtr; i++) {
                 scores[i] = score;
+                ranks.push_back(backPtr + 1);
+                numTies.push_back(numSnakes);
             }
 
             backPtr = frontPtr;
@@ -361,6 +370,8 @@ void Game::finish() {
 
     for (int i = backPtr; i < frontPtr; i++) {
         scores[i] = score;
+        ranks.push_back(backPtr + 1);
+        numTies.push_back(numSnakes);
     }
 
     int totalChange = 0;
@@ -385,7 +396,20 @@ void Game::finish() {
 
     for (int i = 0; i < snakePtrs.size(); i++) {
         Snake* snake = snakePtrs[i];
-        snake->getPlayer()->setElo(snake->getPlayer()->getElo() + changes[i]);
+        int newElo = snake->getPlayer()->getElo() + changes[i];
+        snake->getPlayer()->setElo(newElo);
+
+        snake->getPlayer()->endGame(
+                *this,
+                *snake,
+                !snake->isAlive(),
+                snake->getSize(),
+                snakeSizeScore(*snake),
+                snake->diedOnTurn,
+                ranks[i],
+                numTies[i],
+                newElo
+        );
     }
 }
 /*

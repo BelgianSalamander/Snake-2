@@ -7,6 +7,7 @@
 
 #include <queue>
 #include "utils.h"
+#include <iostream>
 
 class Player;
 
@@ -14,6 +15,7 @@ class Snake {
 public:
     unsigned int startSize;
     unsigned int diedOnTurn;
+    unsigned int sizeOnDeath = 0;
 
     Snake(Player* player, unsigned int id);
 
@@ -41,11 +43,22 @@ public:
     }
 
     inline void kill() {
+        if (sizeOnDeath == 0) {
+            std::cerr << "Forgot to set sizeOnDeath" << std::endl;
+        }
         this-> alive = false;
     }
 
     [[nodiscard]] inline bool isAlive() const {
         return alive;
+    }
+
+    [[nodiscard]] inline unsigned int getSize() const {
+        if (alive) {
+            return body.size();
+        } else {
+            return sizeOnDeath;
+        }
     }
 private:
     const unsigned int id;

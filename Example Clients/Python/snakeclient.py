@@ -67,8 +67,10 @@ MOVE_REQUEST = 1
 GAME_CHANGES = 2
 GAME_START = 3
 WHOLE_GRID = 4
+SNAKE_DEATH = 5
+GAME_RESULTS = 6
 
-INWARD = ["Connection Established", "Move Request", "Game Changes", "Game Start", "Whole Grid"]
+INWARD = ["Connection Established", "Move Request", "Game Changes", "Game Start", "Whole Grid", "Snake Death", "Game Results"]
 
 ## Outward bound packets
 NAME_AND_COLOR = 0
@@ -128,7 +130,7 @@ class Client(ABC):
         while len(data) < packet_length:
             data += self.sock.recv(packet_length - len(data))
 
-        print(f"Received {INWARD[packet_type]}")
+        #print(f"Received {INWARD[packet_type]}")
 
         return packet_type, data
 
@@ -172,9 +174,28 @@ class Client(ABC):
                     square = Square(square_type, snake_ID)
                     if square != self.board[r][c]:
                         print(f"Square mismatch at {r}, {c}")
+        elif packet_type == SNAKE_DEATH:
+            # The body of the packet is an ASCII string with a reason
+            reason = packet_data.decode("ascii")
+            self.on_death(reason)
+        elif packet_type == GAME_RESULTS:
+            self.process_game_results(*struct.unpack("<?IiIIIi", packet_data))
 
     def on_game_start(self):
         pass
 
     def on_update_square(self, row: int, col: int, old_square: Square, new_square: Square):
         pass
+
+    def on_death(self, reason: str):
+        print("Snake died!", reason)
+
+    def process_game_results(self, died: bool, length: int, score: int, died_on: int, rank: int, num_ties: int, new_elo: int):
+        print("Game over!")
+        print(f"  Length: {length}")
+        print(f"  Score: {score}")
+        print(f"  Rank: {rank}")
+        print(f"  Num ties: {num_ties}")
+        print(f"  New ELO: {new_elo}")
+        if died:
+            print(f"  Died on: {died_on}")

@@ -10,6 +10,7 @@
 
 class GameCreator {
 public:
+    friend class ConfigMenu;
     GameCreator(unsigned int targetGameAmount);
 
     void addPlayer(Player* player);

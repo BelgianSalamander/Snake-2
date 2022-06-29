@@ -91,7 +91,11 @@ void GameCreator::render() {
     ImGui::InputText("Layout path", this->fileBuf, 64);
 
     if (ImGui::Button("Update")) {
-        this->config = GameConfig::fromFile(fullPath(this->fileBuf));
+        try {
+            this->config = GameConfig::fromFile(fullPath(this->fileBuf));
+        } catch (std::runtime_error& e) {
+            std::cout << "Error: " << e.what() << std::endl;
+        }
     }
 
     ImGui::End();
@@ -114,10 +118,6 @@ void GameCreator::tick() {
                 game->finish();
 
                 for (Snake& snake : game->snakes) {
-                    if (snake.isAlive()) {
-                        snake.getPlayer()->endGame(*game, snake);
-                    }
-
                     if (snake.getPlayer()->kicked) {
                         snake.getPlayer()->onRemoved();
                     } else {

@@ -35,7 +35,7 @@ private:
 
     float ref;
 
-    ImFont* getFont(float dpiScale);
+    ImFont* getFont(float dpiScale, bool load = true);
 };
 
 
